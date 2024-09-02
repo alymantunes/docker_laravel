@@ -1,29 +1,46 @@
 services:
-  app:
+  ### PHP-FPM Container #######################################
+  php-fpm:
     build:
-      context: .
-      dockerfile: docker/Dockerfile
-    container_name: laravel-app
-    restart: unless-stopped
+      context: ./docker/php-fpm
+      dockerfile: Dockerfile
+      args:
+        user: laravel
+        uid: 1000
+    working_dir: /var/www/
     volumes:
-      - ./app:/var/www/html
+      - ./app:/var/www
+      - ./docker/php-fpm/php.ini:/usr/local/etc/php/php.ini
+    ports:
+      - "5173:5173"
+    expose:
+      - "9000"
+      - "9003"
+    extra_hosts:
+      # IMPORTANT: Replace with your Docker Host IP (will be appended to /etc/hosts)
+      - "dockerhost:127.0.0.1"
+    environment:
+      # IMPORTANT: Set the Remote Interpreter entry matching name to `laravel`
+      - PHP_IDE_CONFIG=serverName=localhost
+      - XDEBUG_CONFIG=remote_host=127.0.0.1
     networks:
-      - laravel
+      - app-network
+    restart: always
 
+  ### Nginx Server Container ##################################
   nginx:
     image: nginx:alpine
-    container_name: nginx
-    restart: unless-stopped
+    volumes:
+      - ./app:/var/www
+      - ./docker/php-fpm/nginx/:/etc/nginx/conf.d
+    restart: always
     ports:
       - "80:80"
-    volumes:
-      - ./app:/var/www/html
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d
-    networks:
-      - laravel
-    depends_on:
-      - app
 
+    networks:
+      - app-network
+
+  ### MariaDB Container ######################################
   mariadb:
     image: mariadb:latest
     container_name: mariadb
@@ -38,8 +55,13 @@ services:
     ports:
       - "3306:3306"
     networks:
-      - laravel
+      - app-network
+    restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-p root_password" ]
+      retries: 3
+      timeout: 5s
 
 networks:
-  laravel:
+  app-network:
     driver: bridge
