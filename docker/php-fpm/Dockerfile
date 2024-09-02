@@ -9,26 +9,20 @@ ENV TZ "America/Sao_Paulo"
 
 ENV NODE_OPTIONS=--openssl-legacy-provider
 
-COPY uploads.ini /usr/local/etc/php/conf.d/uploads.ini
-
 #install git and zip
 RUN apt-get update && apt-get install libzip-dev zip git wget -y
 
 RUN apt-get update \
     && mkdir tmp && cd ./tmp \
-
     && docker-php-ext-install pdo_mysql \
-
     # Install ZLIB
     && apt-get install zlib1g zlib1g-dev \
     && apt-get install -y \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
     libpng-dev \
-
     # Install nano
     && apt-get install nano -y\
-
     # Install GD
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && apt install -y \
@@ -47,7 +41,6 @@ RUN apt-get update \
     # Clean files
     && cd ../ && rm -rf /var/www/html/tmp \
     && apt-get clean && apt-get autoclean \
-
     #install composer
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
 
